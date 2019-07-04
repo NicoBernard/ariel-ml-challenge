@@ -1,0 +1,7 @@
+{
+    "python.linting.pylintEnabled": false,
+    "python.linting.pep8Enabled": true,
+    "python.linting.enabled": true,
+    "python.linting.mypyEnabled": false,
+    "python.pythonPath": "C:\\Users\\Ni-Co\\Projects\\Anaconda3\\envs\\ai\\python.exe"
+}
