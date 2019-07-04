@@ -26,17 +26,17 @@ relative_radius = layers.Dense(
     55, activation=None, name='relative_radius')(flattened)
 
 model_name = 'model3'
-model3 = Model(name=model_name,
-               inputs=[flux],
-               outputs=[relative_radius])
+model = Model(name=model_name,
+              inputs=[flux],
+              outputs=[relative_radius])
 
 # %%
-model3.summary()
+model.summary()
 
 # %%
-model3.compile('rmsprop',
-               loss='mse',
-               metrics=ariel.METRICS)
+model.compile('rmsprop',
+              loss='mse',
+              metrics=ariel.METRICS)
 
 # %%
 batch_size = 128
@@ -44,11 +44,11 @@ train_generator, val_generator = ariel.create_train_val_generator(
     batch_size=batch_size)
 
 # %%
-history3 = model3.fit_generator(train_generator,
-                                epochs=3, callbacks=ariel.create_callbacks(model_name),
-                                validation_data=val_generator,
-                                use_multiprocessing=True, workers=4,
-                                )
+history = model.fit_generator(train_generator,
+                              epochs=3, callbacks=ariel.create_callbacks(model_name),
+                              validation_data=val_generator,
+                              use_multiprocessing=True, workers=4,
+                              )
 
 # %%
 
