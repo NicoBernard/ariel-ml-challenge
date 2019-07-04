@@ -45,11 +45,11 @@ def read_batch(files):
     return np.squeeze(np.stack(feature)), np.stack(extra_feature)
 
 
-def create_train_val_generator(batch_size=128):
+def create_train_val_generator(model, batch_size=128):
 
     train_files, val_files = split_files_into_train_val()
-    train_generator = TrainGenerator(train_files, batch_size=batch_size)
-    val_generator = TrainGenerator(val_files, batch_size=batch_size)
+    train_generator = TrainGenerator(train_files, model, batch_size=batch_size)
+    val_generator = TrainGenerator(val_files, model, batch_size=batch_size)
     return train_generator, val_generator
 
 
@@ -63,8 +63,8 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
 class Generator(Sequence):
     def __init__(self, files, input_names, output_names=[], batch_size=128):
         self.files = files
-        self.input_names = input_names
-        self.output_names = output_names
+        self._input_names = input_names
+        self._output_names = output_names
         self.batch_size = batch_size
 
     def __len__(self):
@@ -77,12 +77,15 @@ class Generator(Sequence):
         batch_stores = self.files['store'][batch_mask]
 
         batch = read_batch_store(
-            batch_stores, [self.input_names + self.output_names])
-        batch_input = {k: v for k, v in batch if k in self.input_names}
-        batch_output = {k: v for k, v in batch if k in self.output_names}
+            batch_stores, self._input_names + self._output_names)
+
+        batch_input = {k: v for k, v in batch.items()
+                       if k in self._input_names}
+        batch_output = {k: v for k, v in batch.items()
+                        if k in self._output_names}
         normalized_batch_input = normalize_features(batch_input)
 
-        if self.output_names:
+        if self._output_names:
             return (normalized_batch_input, batch_output)
         else:
             return normalized_batch_input
@@ -100,7 +103,7 @@ def read_store(storepath, requested_keys):
 
 
 def normalize_features(batch):
-    return {key: (batch[key] - MEAN[batch])/STD[batch] for key in batch.keys()}
+    return {key: (batch[key] - MEAN[key])/STD[key] for key in batch.keys()}
 
 
 class TrainGenerator(Generator):
@@ -134,5 +137,5 @@ def create_callbacks(model_name):
 
 
 def timestamp(model_name):
-    return "%s_%s"
-    % (datetime.now().strftime('%Y-%m-%dT%H-%M-%S'), model_name)
+    return "%s_%s" \
+        % (datetime.now().strftime('%Y-%m-%dT%H-%M-%S'), model_name)
