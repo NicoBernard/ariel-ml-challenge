@@ -14,7 +14,7 @@ get_ipython().run_line_magic('autoreload', '2')
 model = load_model('model_checkpoints/2019-07-02_model3.hdf5')
 
 # %%
-test_gen = ariel.TestGenerator(ariel.TEST_FILE)
+test_gen = ariel.TestGenerator(ariel.TEST_FILE, model)
 predictions = model.predict_generator(test_gen,
                                       use_multiprocessing=True,
                                       workers=4,

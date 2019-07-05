@@ -21,11 +21,16 @@ conv2 = layers.Conv1D(64, 5, activation='relu',
 averagePool2 = layers.AveragePooling1D(
     4, data_format='channels_first', name='averagePool2')(conv2)
 
-flattened = layers.Flatten(name='flatten')(averagePool2)
+conv3 = layers.Conv1D(128, 5, activation='relu',
+                      data_format='channels_first', name='conv3')(averagePool2)
+averagePool3 = layers.AveragePooling1D(
+    4, data_format='channels_first', name='averagePool3')(conv3)
+
+flattened = layers.Flatten(name='flatten')(averagePool3)
 relative_radius = layers.Dense(
     55, activation=None, name='relative_radius')(flattened)
 
-model_name = 'model3'
+model_name = 'conv1D_3layers'
 model = Model(name=model_name,
               inputs=[flux],
               outputs=[relative_radius])
@@ -39,9 +44,10 @@ model.compile('rmsprop',
               metrics=ariel.METRICS)
 
 # %%
-batch_size = 128
-train_generator, val_generator = ariel.create_train_val_generator(
-    batch_size=batch_size)
+batch_size = 256
+train_generator, val_generator = ariel \
+    .create_train_val_generator(model,
+                                batch_size=batch_size)
 
 # %%
 history = model.fit_generator(train_generator,
@@ -49,14 +55,5 @@ history = model.fit_generator(train_generator,
                               validation_data=val_generator,
                               use_multiprocessing=True, workers=4,
                               )
-
-# %%
-
-model = load_model("model_checkpoints/2019-07-03T12-02-07_model3.hdf5")
-
-# %%
-model.compile('rmsprop', loss='mse',
-              metrics=ariel.METRICS)
-
 
 # %%

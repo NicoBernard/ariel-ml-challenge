@@ -11,12 +11,16 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 
 with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
-    FEATURE_MEAN = preprocessing['feature_mean'].transpose().values
-    FEATURE_STD = preprocessing['feature_std'].transpose().values
-    EXTRA_FEATURE_MEAN = preprocessing['extra_feature_mean'].transpose().values
-    EXTRA_FEATURE_STD = preprocessing['extra_feature_std'].transpose().values
     TRAINING_FILE = preprocessing['training_file']
     TEST_FILE = preprocessing['test_file']
+    MEAN = {
+        'feature': np.expand_dims(preprocessing['feature_mean'].transpose().values, -1),
+        'extra_feature': preprocessing['extra_feature_mean'].transpose().values,
+    }
+    STD = {
+        'feature': np.expand_dims(preprocessing['feature_std'].transpose().values, -1),
+        'extra_feature': preprocessing['extra_feature_std'].transpose().values,
+    }
 
 
 _EXTRA_FEATURE_REGEX = re.compile(r"(?<=:\s)[0-9\.]+")
@@ -41,11 +45,11 @@ def read_batch(files):
     return np.squeeze(np.stack(feature)), np.stack(extra_feature)
 
 
-def create_train_val_generator(batch_size=128):
+def create_train_val_generator(model, batch_size=128):
 
     train_files, val_files = split_files_into_train_val()
-    train_generator = TrainGenerator(train_files, batch_size=batch_size)
-    val_generator = TrainGenerator(val_files, batch_size=batch_size)
+    train_generator = TrainGenerator(train_files, model, batch_size=batch_size)
+    val_generator = TrainGenerator(val_files, model, batch_size=batch_size)
     return train_generator, val_generator
 
 
@@ -56,54 +60,11 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
     return training_file.loc[planet_train], training_file.loc[planet_val]
 
 
-class TrainGenerator(Sequence):
-    def __init__(self, files, batch_size=128):
-        self.randomized_files = files.sample(frac=1)
-        self.batch_size = batch_size
-
-    def __len__(self):
-        return int(np.ceil(self.randomized_files.shape[0]/float(self.batch_size)))
-
-    def __getitem__(self, idx):
-        batch_mask = np.arange(self.batch_size * idx,
-                               min(self.batch_size * (idx + 1),
-                                   self.randomized_files.shape[0]))
-        batch_stores = self.randomized_files['store'][batch_mask]
-
-        batch = read_batch_store(batch_stores, is_training=True)
-        normalized_batch_feature, normalized_batch_extra_features = normalize_features(
-            batch['feature'], batch['extra_feature'])
-        return ({'feature': normalized_batch_feature,
-                 'extra_feature': normalized_batch_extra_features},
-                {'relative_radius': batch['relative_radius'],
-                 'orbit': batch['orbit']})
-
-
-def read_batch_store(stores, is_training=True):
-    values = pd.DataFrame((read_store(s, is_training=is_training)
-                           for s in stores))
-    return {col: np.squeeze(np.stack(values[col])) for col in values.columns}
-
-
-def read_store(storepath, is_training=True):
-    with pd.HDFStore(storepath) as store:
-        if is_training:
-            return {key: store[key] for key in _STORE_KEYS}
-        else:
-            return {key: store[key] for key in _STORE_KEYS[:2]}
-
-
-def normalize_features(batch_flux, batch_extra_features):
-    normalized_batch_flux = (
-        batch_flux - np.expand_dims(FEATURE_MEAN, -1)) / np.expand_dims(FEATURE_STD, -1)
-    normalized_batch_extra_features = (
-        batch_extra_features - EXTRA_FEATURE_MEAN) / EXTRA_FEATURE_STD
-    return normalized_batch_flux, normalized_batch_extra_features
-
-
-class TestGenerator(Sequence):
-    def __init__(self, files, batch_size=128):
+class Generator(Sequence):
+    def __init__(self, files, input_names, output_names=[], batch_size=128):
         self.files = files
+        self._input_names = input_names
+        self._output_names = output_names
         self.batch_size = batch_size
 
     def __len__(self):
@@ -115,11 +76,54 @@ class TestGenerator(Sequence):
                                    self.files.shape[0]))
         batch_stores = self.files['store'][batch_mask]
 
-        batch = read_batch_store(batch_stores, is_training=False)
-        normalized_batch_feature, normalized_batch_extra_features = normalize_features(
-            batch['feature'], batch['extra_feature'])
-        return {'feature': normalized_batch_feature,
-                'extra_feature': normalized_batch_extra_features}
+        batch = read_batch_store(
+            batch_stores, self._input_names + self._output_names)
+
+        batch_input = {k: v for k, v in batch.items()
+                       if k in self._input_names}
+        batch_output = {k: v for k, v in batch.items()
+                        if k in self._output_names}
+        normalized_batch_input = normalize_features(batch_input)
+
+        if self._output_names:
+            return (normalized_batch_input, batch_output)
+        else:
+            return normalized_batch_input
+
+
+def read_batch_store(stores, requested_keys):
+    values = pd.DataFrame((read_store(s, requested_keys)
+                           for s in stores))
+    return {col: np.squeeze(np.stack(values[col])) for col in values.columns}
+
+
+def read_store(storepath, requested_keys):
+    with pd.HDFStore(storepath) as store:
+        return {key: store[key] for key in requested_keys}
+
+
+def normalize_features(batch):
+    return {key: (batch[key] - MEAN[key])/STD[key] for key in batch.keys()}
+
+
+class TrainGenerator(Generator):
+    def __init__(self, files, model, batch_size=128):
+        Generator.__init__(self, files,
+                           model.input_names,
+                           output_names=model.output_names,
+                           batch_size=batch_size)
+        self.on_epoch_end()
+
+    def on_epoch_end(self):
+        self.files = self.files.sample(frac=1)
+
+
+class TestGenerator(Generator):
+    def __init__(self, files, model, batch_size=128):
+        Generator.__init__(self, files,
+                           model.input_names,
+                           output_names=[],
+                           batch_size=batch_size)
 
 
 def create_callbacks(model_name):
