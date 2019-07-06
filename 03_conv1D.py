@@ -30,7 +30,7 @@ flattened = layers.Flatten(name='flatten')(averagePool3)
 relative_radius = layers.Dense(
     55, activation=None, name='relative_radius')(flattened)
 
-model_name = 'conv1D_3layers'
+model_name = 'conv1D-3layers'
 model = Model(name=model_name,
               inputs=[flux],
               outputs=[relative_radius])
@@ -40,7 +40,7 @@ model.summary()
 
 # %%
 model.compile('rmsprop',
-              loss='mse',
+              loss='mae',
               metrics=ariel.METRICS)
 
 # %%
@@ -51,9 +51,14 @@ train_generator, val_generator = ariel \
 
 # %%
 history = model.fit_generator(train_generator,
-                              epochs=3, callbacks=ariel.create_callbacks(model_name),
+                              epochs=20, callbacks=ariel.create_callbacks(model_name),
                               validation_data=val_generator,
                               use_multiprocessing=True, workers=4,
                               )
 
 # %%
+
+
+def create_conv_average_layer(filters, kernel_size, pool_size,
+                              layer_idx, pool_type=layers.AveragePooling1D):
+    
