@@ -10,7 +10,6 @@ get_ipython().run_line_magic('autoreload', '2')
 # %%
 
 flux = Input(shape=(55, 300), name='feature')
-extra_feature = Input(shape=(6,), name='extra_feature')
 
 conv1 = layers.Conv1D(32, 5, activation='relu',
                       data_format='channels_first', name='conv1')(flux)
@@ -28,7 +27,12 @@ averagePool3 = layers.AveragePooling1D(
     4, data_format='channels_first', name='averagePool3')(conv3)
 
 flattened = layers.Flatten(name='flatten')(averagePool3)
-with_extra_feature = layers.Concatenate()([flattened, extra_feature])
+
+extra_feature = Input(shape=(6,), name='extra_feature')
+extra_dense_1 = layers.Dense(8, activation='relu')(extra_feature)
+extra_dense_2 = layers.Dense(8, activation='relu')(extra_dense_1)
+
+with_extra_feature = layers.Concatenate()([flattened, extra_dense_2])
 relative_radius = layers.Dense(
     55, activation=None, name='relative_radius')(with_extra_feature)
 
