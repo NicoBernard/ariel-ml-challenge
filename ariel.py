@@ -130,7 +130,7 @@ def create_callbacks(model_name):
     timestamped = timestamp(model_name)
     return [
         callbacks.EarlyStopping(
-            monitor='loss', restore_best_weights=True, verbose=True),
+            monitor='val_loss', restore_best_weights=True, verbose=True),
         callbacks.TensorBoard(log_dir="./logs/%s" %
                               timestamped, update_freq=1024),
         callbacks.ModelCheckpoint('model_checkpoints/%s.hdf5' % timestamped),
