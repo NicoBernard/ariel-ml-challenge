@@ -16,10 +16,12 @@ with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
     MEAN = {
         'feature': np.expand_dims(preprocessing['feature_mean'].transpose().values, -1),
         'extra_feature': preprocessing['extra_feature_mean'].transpose().values,
+        'orbit': preprocessing['orbit_mean'].transpose().values
     }
     STD = {
         'feature': np.expand_dims(preprocessing['feature_std'].transpose().values, -1),
         'extra_feature': preprocessing['extra_feature_std'].transpose().values,
+        'orbit': preprocessing['orbit_std'].transpose().values
     }
 
 

@@ -10,9 +10,6 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-get_ipython().run_line_magic('load_ext', 'autoreload')
-get_ipython().run_line_magic('autoreload', '2')
-
 # %% [markdown]
 # ## Converting data in a more manageable format
 
@@ -293,5 +290,24 @@ with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
     preprocessing['training_file'] = updated_training_file
     preprocessing['test_file'] = updated_test_file
 
+
+# %%
+n_file = ariel.TRAINING_FILE.shape[0]
+orbit_by_file = np.zeros((n_file, 2))
+
+# %%
+for i_file, file in enumerate(ariel.TRAINING_FILE['store']):
+    if i_file % 100 == 0:
+        print("reading file %d/%d" % (i_file + 1, n_file), end='\r')
+    orbit_by_file[i_file] = ariel.read_store(file, ['orbit'])['orbit']
+
+# %%
+orbit_mean = orbit_by_file.mean(axis=0)
+orbit_std = orbit_by_file.std(axis=0)
+
+# %%
+with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
+    preprocessing['orbit_mean'] = pd.DataFrame(orbit_mean)
+    preprocessing['orbit_std'] = pd.DataFrame(orbit_std)
 
 # %%
