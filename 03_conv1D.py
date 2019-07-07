@@ -1,7 +1,7 @@
 # %%
 import ariel
 import numpy as np
-from keras import layers, callbacks, Input, Model, Sequential
+from keras import layers, callbacks, optimizers, Input, Model, Sequential
 from keras.models import load_model
 import keras.backend as K
 
@@ -42,7 +42,7 @@ model = Model(name=model_name,
 model.summary()
 
 # %%
-model.compile('rmsprop',
+model.compile(optimizers.RMSprop(lr=0.01),
               loss='mae',
               metrics=ariel.METRICS)
 
