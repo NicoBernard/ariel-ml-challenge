@@ -32,11 +32,11 @@ orbit = Input(shape=(2,), name='orbit')
 orbit_dense_1 = layers.Dense(16, activation='relu')(orbit)
 orbit_dense_2 = layers.Dense(16, activation='relu')(orbit_dense_1)
 
-merged = layers.Concatenate()(flattened, orbit_dense_2)
+merged = layers.Concatenate()([flattened, orbit_dense_2])
 relative_radius = layers.Dense(
     55, activation=None, name='relative_radius')(merged)
 
-model_name = 'conv1D-3layers'
+model_name = 'conv1D-3layers-orbit'
 model = Model(name=model_name,
               inputs=[flux, orbit],
               outputs=[relative_radius])
