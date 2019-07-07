@@ -1,36 +1,39 @@
 # %%
 import ariel
 import numpy as np
-from keras import layers, callbacks, Input, Model, Sequential
+from keras import layers, callbacks, optimizers, Input, Model, Sequential
 from keras.models import load_model
+import keras.backend as K
 
 get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
 
 # %%
 
+
+def create_cell(x, filters, kernel_size, pool_size):
+    conv = layers.SeparableConv1D(
+        filters, kernel_size, activation='relu',
+        data_format='channels_first')(x)
+    pool = layers.MaxPool1D(
+        4, data_format='channels_first')(conv)
+    return pool
+
+
+# %%
+K.clear_session()
+
 flux = Input(shape=(55, 300), name='feature')
 
-conv1 = layers.Conv1D(32, 5, activation='relu',
-                      data_format='channels_first', name='conv1')(flux)
-averagePool1 = layers.AveragePooling1D(
-    4, data_format='channels_first', name='averagePool1')(conv1)
+cell1 = create_cell(flux, 32, 5, 4)
+cell2 = create_cell(cell1, 64, 5, 4)
+cell3 = create_cell(cell2, 128, 5, 4)
 
-conv2 = layers.Conv1D(64, 5, activation='relu',
-                      data_format='channels_first', name='conv2')(averagePool1)
-averagePool2 = layers.AveragePooling1D(
-    4, data_format='channels_first', name='averagePool2')(conv2)
-
-conv3 = layers.Conv1D(128, 5, activation='relu',
-                      data_format='channels_first', name='conv3')(averagePool2)
-averagePool3 = layers.AveragePooling1D(
-    4, data_format='channels_first', name='averagePool3')(conv3)
-
-flattened = layers.Flatten(name='flatten')(averagePool3)
+flattened = layers.Flatten(name='flatten')(cell3)
 relative_radius = layers.Dense(
     55, activation=None, name='relative_radius')(flattened)
 
-model_name = 'conv1D-3layers'
+model_name = 'sepconv1d-3layers-maxpool'
 model = Model(name=model_name,
               inputs=[flux],
               outputs=[relative_radius])
@@ -39,7 +42,7 @@ model = Model(name=model_name,
 model.summary()
 
 # %%
-model.compile('rmsprop',
+model.compile(optimizers.RMSprop(lr=0.01),
               loss='mae',
               metrics=ariel.METRICS)
 
@@ -51,7 +54,7 @@ train_generator, val_generator = ariel \
 
 # %%
 history = model.fit_generator(train_generator,
-                              epochs=20, callbacks=ariel.create_callbacks(model_name),
+                              epochs=10, callbacks=ariel.create_callbacks(model_name),
                               validation_data=val_generator,
                               use_multiprocessing=True, workers=4,
                               )
@@ -61,4 +64,3 @@ history = model.fit_generator(train_generator,
 
 def create_conv_average_layer(filters, kernel_size, pool_size,
                               layer_idx, pool_type=layers.AveragePooling1D):
-    
