@@ -45,11 +45,22 @@ def read_batch(files):
     return np.squeeze(np.stack(feature)), np.stack(extra_feature)
 
 
-def create_train_val_generator(model, batch_size=128):
+def create_train_val_generator(model, batch_size=128, benchmark_mode=True):
 
     train_files, val_files = split_files_into_train_val()
-    train_generator = TrainGenerator(train_files, model, batch_size=batch_size)
-    val_generator = TrainGenerator(val_files, model, batch_size=batch_size)
+    if benchmark_mode:
+        train_files = train_files[::10]
+        val_files = val_files[::10]
+        train_generator = TrainGenerator(
+            train_files, model, batch_size=batch_size, preload=True)
+        val_generator = TrainGenerator(
+            val_files, model, batch_size=batch_size, preload=True)
+    else
+    train_generator = TrainGenerator(
+        train_files, model, batch_size=batch_size, preload=False)
+    val_generator = TrainGenerator(
+        val_files, model, batch_size=batch_size, preload=False)
+
     return train_generator, val_generator
 
 
