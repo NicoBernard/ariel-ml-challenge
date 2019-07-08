@@ -15,11 +15,8 @@ def create_cell(x, filters, kernel_size, pool_size):
     conv1 = layers.SeparableConv1D(
         filters, kernel_size, activation='relu',
         data_format='channels_first')(x)
-    conv2 = layers.SeparableConv1D(
-        filters, kernel_size, activation='relu',
-        data_format='channels_first')(conv1)
     pool = layers.MaxPool1D(
-        pool_size, data_format='channels_first')(conv2)
+        pool_size, data_format='channels_first')(conv1)
     return pool
 
 
@@ -34,9 +31,9 @@ K.clear_session()
 
 flux = Input(shape=(55, 300), name='feature')
 
-cell1 = create_multichannel_cell(flux, 32, [1, 3, 5], 2)
-cell2 = create_multichannel_cell(cell1, 64, [1, 3, 5], 2)
-cell3 = create_multichannel_cell(cell2, 128, [1, 3, 5], 2)
+cell1 = create_multichannel_cell(flux, 32, [3, 5, 7], 4)
+cell2 = create_multichannel_cell(cell1, 64, [3, 5, 7], 4)
+cell3 = create_multichannel_cell(cell2, 128, [3, 5, 7], 4)
 
 flattened = layers.Flatten(name='flatten')(cell3)
 relative_radius = layers.Dense(
@@ -51,7 +48,7 @@ model = Model(name=model_name,
 model.summary()
 
 # %%
-model.compile(optimizers.RMSprop(lr=0.01),
+model.compile('rmsprop',
               loss='mae',
               metrics=ariel.METRICS)
 
@@ -67,3 +64,6 @@ history = model.fit_generator(train_generator,
                               validation_data=val_generator,
                               use_multiprocessing=True, workers=4,
                               )
+
+
+# %%
