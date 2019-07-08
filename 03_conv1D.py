@@ -12,12 +12,18 @@ get_ipython().run_line_magic('autoreload', '2')
 
 
 def create_cell(x, filters, kernel_size, pool_size):
-    conv = layers.SeparableConv1D(
+    conv1 = layers.SeparableConv1D(
         filters, kernel_size, activation='relu',
         data_format='channels_first')(x)
     pool = layers.MaxPool1D(
-        4, data_format='channels_first')(conv)
+        pool_size, data_format='channels_first')(conv1)
     return pool
+
+
+def create_multichannel_cell(x, filters, channel_kernel_size, pool_size):
+    cells = [create_cell(x, filters, kernel_size, pool_size)
+             for kernel_size in channel_kernel_size]
+    return layers.Concatenate()(cells)
 
 
 # %%
@@ -25,15 +31,15 @@ K.clear_session()
 
 flux = Input(shape=(55, 300), name='feature')
 
-cell1 = create_cell(flux, 32, 5, 4)
-cell2 = create_cell(cell1, 64, 5, 4)
-cell3 = create_cell(cell2, 128, 5, 4)
+cell1 = create_multichannel_cell(flux, 32, [3, 5, 7], 4)
+cell2 = create_multichannel_cell(cell1, 64, [3, 5, 7], 4)
+cell3 = create_multichannel_cell(cell2, 128, [3, 5, 7], 4)
 
 flattened = layers.Flatten(name='flatten')(cell3)
 relative_radius = layers.Dense(
     55, activation=None, name='relative_radius')(flattened)
 
-model_name = 'sepconv1d-3layers-maxpool'
+model_name = 'multichannel-3layers'
 model = Model(name=model_name,
               inputs=[flux],
               outputs=[relative_radius])
@@ -42,7 +48,7 @@ model = Model(name=model_name,
 model.summary()
 
 # %%
-model.compile(optimizers.RMSprop(lr=0.01),
+model.compile('rmsprop',
               loss='mae',
               metrics=ariel.METRICS)
 
@@ -59,8 +65,5 @@ history = model.fit_generator(train_generator,
                               use_multiprocessing=True, workers=4,
                               )
 
+
 # %%
-
-
-def create_conv_average_layer(filters, kernel_size, pool_size,
-                              layer_idx, pool_type=layers.AveragePooling1D):
