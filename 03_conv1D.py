@@ -39,7 +39,7 @@ flattened = layers.Flatten(name='flatten')(cell3)
 relative_radius = layers.Dense(
     55, activation=None, name='relative_radius')(flattened)
 
-model_name = 'multichannel-3layers'
+model_name = '3multichannel-2dense'
 model = Model(name=model_name,
               inputs=[flux],
               outputs=[relative_radius])
