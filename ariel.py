@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras import callbacks
+from keras import callbacks, layers
 from keras.utils import Sequence
 import keras.backend as K
 import pandas as pd
