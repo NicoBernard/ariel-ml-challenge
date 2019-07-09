@@ -1,2 +1,4 @@
-preprocessing
+preprocessing/test
+preprocessing/validation
+preprocessing/training
 __pycache__

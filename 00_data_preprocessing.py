@@ -9,6 +9,7 @@ import glob
 from pathlib import Path
 import numpy as np
 from sklearn.model_selection import train_test_split
+import os
 
 get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
@@ -292,6 +293,25 @@ updated_test_file = test_file.assign(store=store_file)
 with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
     preprocessing['training_file'] = updated_training_file
     preprocessing['test_file'] = updated_test_file
+
+
+# %%
+train, val = ariel.split_files_into_train_val()
+
+# %%
+
+updated_val = val.assign(store=val.store.str.replace('training', 'validation'))
+
+
+# %%
+for old, new in zip(val.store, updated_val.store):
+    os.rename(old, new)
+
+
+# %%
+with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
+    preprocessing['training_file'] = train
+    preprocessing['validation_file'] = updated_val
 
 
 # %%
