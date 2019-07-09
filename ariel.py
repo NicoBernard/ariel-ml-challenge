@@ -129,7 +129,7 @@ class TestGenerator(Generator):
 def create_callbacks(model_name):
     timestamped = timestamp(model_name)
     return [
-        callbacks.ReduceLROnPlateau(monitor='loss', factor=0.3)
+        callbacks.ReduceLROnPlateau(monitor='loss', factor=0.3),
         callbacks.EarlyStopping(
             monitor='loss', patience=2,
             restore_best_weights=True, verbose=True),
@@ -143,3 +143,18 @@ def create_callbacks(model_name):
 def timestamp(model_name):
     return "%s_%s" \
         % (datetime.now().strftime('%Y-%m-%dT%H-%M-%S'), model_name)
+
+
+def create_channel(x, filters, kernel_size, pool_size):
+    conv1 = layers.SeparableConv1D(
+        filters, kernel_size, activation='relu',
+        data_format='channels_first')(x)
+    pool = layers.MaxPool1D(
+        pool_size, data_format='channels_first')(conv1)
+    return pool
+
+
+def create_multichannel_cell(x, filters, channel_kernel_size, pool_size):
+    cells = [create_channel(x, filters, kernel_size, pool_size)
+             for kernel_size in channel_kernel_size]
+    return layers.Concatenate()(cells)
