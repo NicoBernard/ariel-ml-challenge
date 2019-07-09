@@ -9,6 +9,7 @@ import glob
 from pathlib import Path
 import numpy as np
 from sklearn.model_selection import train_test_split
+import os
 
 get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')

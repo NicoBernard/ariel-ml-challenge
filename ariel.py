@@ -12,6 +12,7 @@ from datetime import datetime
 
 with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
     TRAINING_FILE = preprocessing['training_file']
+    VALIDATION_FILE = preprocessing['validation_file']
     TEST_FILE = preprocessing['test_file']
     MEAN = {
         'feature': np.expand_dims(preprocessing['feature_mean'].transpose().values, -1),
@@ -47,9 +48,10 @@ def read_batch(files):
 
 def create_train_val_generator(model, batch_size=128):
 
-    train_files, val_files = split_files_into_train_val()
-    train_generator = TrainGenerator(train_files, model, batch_size=batch_size)
-    val_generator = TrainGenerator(val_files, model, batch_size=batch_size)
+    train_generator = TrainGenerator(
+        TRAINING_FILE, model, batch_size=batch_size)
+    val_generator = TrainGenerator(
+        VALIDATION_FILE, model, batch_size=batch_size)
     return train_generator, val_generator
 
 
