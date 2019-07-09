@@ -63,11 +63,14 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
 
 
 class Generator(Sequence):
-    def __init__(self, files, input_names, output_names=[], batch_size=128):
+    def __init__(self, files, input_names,
+                 output_names=[], batch_size=128,
+                 random_reverse=False):
         self.files = files
         self._input_names = input_names
         self._output_names = output_names
         self.batch_size = batch_size
+        self.random_reverse = random_reverse
 
     def __len__(self):
         return int(np.ceil(self.files.shape[0]/float(self.batch_size)))
@@ -86,6 +89,10 @@ class Generator(Sequence):
         batch_output = {k: v for k, v in batch.items()
                         if k in self._output_names}
         normalized_batch_input = normalize_features(batch_input)
+
+        if self.random_reverse:
+            normalized_batch_input['feature'] = _apply_random_reverse(
+                normalized_batch_input['feature'])
 
         if self._output_names:
             return (normalized_batch_input, batch_output)
@@ -106,6 +113,11 @@ def read_store(storepath, requested_keys):
 
 def normalize_features(batch):
     return {key: (batch[key] - MEAN[key])/STD[key] for key in batch.keys()}
+
+
+def _apply_random_reverse(batch_feature):
+    reverse = np.random.choice([0, 1])
+    return batch_feature[:, :, ::-1] if reverse else batch_feature
 
 
 class TrainGenerator(Generator):
