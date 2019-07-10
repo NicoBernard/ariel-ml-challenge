@@ -49,7 +49,7 @@ def read_batch(files):
 def create_train_val_generator(model, batch_size=128):
 
     train_generator = TrainGenerator(
-        TRAINING_FILE, model, batch_size=batch_size)
+        TRAINING_FILE, model, batch_size=batch_size, random_reverse=True)
     val_generator = TrainGenerator(
         VALIDATION_FILE, model, batch_size=batch_size)
     return train_generator, val_generator
@@ -121,11 +121,13 @@ def _apply_random_reverse(batch_feature):
 
 
 class TrainGenerator(Generator):
-    def __init__(self, files, model, batch_size=128):
+    def __init__(self, files, model, batch_size=128, random_reverse=False):
         Generator.__init__(self, files,
                            model.input_names,
                            output_names=model.output_names,
-                           batch_size=batch_size)
+                           batch_size=batch_size,
+                           random_reverse=random_reverse
+                           )
         self.on_epoch_end()
 
     def on_epoch_end(self):
