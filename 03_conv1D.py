@@ -5,8 +5,8 @@ from keras import layers, callbacks, optimizers, Input, Model, Sequential
 from keras.models import load_model
 import keras.backend as K
 
-get_ipython().run_line_magic('load_ext', 'autoreload')
-get_ipython().run_line_magic('autoreload', '2')
+# get_ipython().run_line_magic('load_ext', 'autoreload')
+# get_ipython().run_line_magic('autoreload', '2')
 
 # %%
 K.clear_session()
@@ -40,7 +40,8 @@ model.compile('rmsprop',
 batch_size = 128
 train_generator, val_generator = ariel \
     .create_train_val_generator(model,
-                                batch_size=batch_size)
+                                batch_size=batch_size,
+                                random_scaling=[0.75, 1.25])
 
 # %%
 history = model.fit_generator(train_generator,

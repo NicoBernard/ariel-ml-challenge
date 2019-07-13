@@ -46,10 +46,10 @@ def read_batch(files):
     return np.squeeze(np.stack(feature)), np.stack(extra_feature)
 
 
-def create_train_val_generator(model, batch_size=128):
+def create_train_val_generator(model, batch_size=128, random_scaling=None):
 
     train_generator = TrainGenerator(
-        TRAINING_FILE, model, batch_size=batch_size, random_reverse=True)
+        TRAINING_FILE, model, batch_size=batch_size, random_reverse=True, random_scaling=random_scaling)
     val_generator = TrainGenerator(
         VALIDATION_FILE, model, batch_size=batch_size)
     return train_generator, val_generator
@@ -65,12 +65,14 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
 class Generator(Sequence):
     def __init__(self, files, input_names,
                  output_names=[], batch_size=128,
-                 random_reverse=False):
+                 random_reverse=False,
+                 random_scaling=None):
         self.files = files
         self._input_names = input_names
         self._output_names = output_names
         self.batch_size = batch_size
         self.random_reverse = random_reverse
+        self.random_scaling = random_scaling
 
     def __len__(self):
         return int(np.ceil(self.files.shape[0]/float(self.batch_size)))
@@ -88,11 +90,16 @@ class Generator(Sequence):
                        if k in self._input_names}
         batch_output = {k: v for k, v in batch.items()
                         if k in self._output_names}
-        normalized_batch_input = normalize_features(batch_input)
+
+        if self.random_scaling:
+            batch_input['feature'] = _apply_random_scaling(
+                batch_input['feature'], self.random_scaling)
 
         if self.random_reverse:
-            normalized_batch_input['feature'] = _apply_random_reverse(
-                normalized_batch_input['feature'])
+            batch_input['feature'] = _apply_random_reverse(
+                batch_input['feature'])
+
+        normalized_batch_input = normalize_features(batch_input)
 
         if self._output_names:
             return (normalized_batch_input, batch_output)
@@ -120,14 +127,21 @@ def _apply_random_reverse(batch_feature):
     return batch_feature[:, :, ::-1] if reverse else batch_feature
 
 
+def _apply_random_scaling(batch_feature, scaling_range):
+    scale_factor = np.random.rand(
+    )*(scaling_range[1] - scaling_range[0]) + scaling_range[0]
+    mean_mask = mean_mask = np.concatenate(
+        [np.arange(20, dtype=int), np.arange(280, 300, dtype=int)])
+    feature_mean = batch_feature[:, :, mean_mask].mean(axis=-1, keepdims=True)
+    return (batch_feature - feature_mean)*scale_factor + feature_mean
+
+
 class TrainGenerator(Generator):
-    def __init__(self, files, model, batch_size=128, random_reverse=False):
+    def __init__(self, files, model, **kwargs):
         Generator.__init__(self, files,
                            model.input_names,
                            output_names=model.output_names,
-                           batch_size=batch_size,
-                           random_reverse=random_reverse
-                           )
+                           **kwargs)
         self.on_epoch_end()
 
     def on_epoch_end(self):
