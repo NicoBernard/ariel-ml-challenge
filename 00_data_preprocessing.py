@@ -295,3 +295,37 @@ with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
 
 
 # %%
+train, val = ariel.split_files_into_train_val()
+
+# %%
+
+updated_val = val.assign(store=val.store.str.replace('training', 'validation'))
+
+
+# %%
+for old, new in zip(val.store, updated_val.store):
+    os.rename(old, new)
+
+
+# %%
+with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
+    preprocessing['training_file'] = train
+    preprocessing['validation_file'] = updated_val
+
+
+# %%
+raw_index = pd.read_csv('data/noisy_test.txt',
+                        header=None,
+                        squeeze=True).str.extract(r'(?P<planet>\d+)_(?P<spot>\d+)_(?P<photon>\d+)')
+index = pd.MultiIndex.from_frame(raw_index)
+
+
+# %%
+updated_test_file = ariel.TEST_FILE.set_index(index)
+
+# %%
+with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
+    preprocessing['test_file'] = updated_test_file
+
+
+# %%
