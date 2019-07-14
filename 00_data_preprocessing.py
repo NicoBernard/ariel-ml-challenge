@@ -330,3 +330,47 @@ with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
 
 
 # %%
+training_file = ariel.TRAINING_FILE
+planet_idx = training_file.index.unique(0).values
+
+# %%
+stacked = pd.DataFrame(observations, index=planet_store.index)
+
+# %%
+for i_planet, idx in enumerate(planet_idx):
+
+    print("progress: %.2f%%" % (i_planet*100 / len(planet_idx)), end='\r')
+    planet_store = training_file.store[idx]
+    observations = [ariel.read_store(planet_store[obs_idx], ariel._STORE_KEYS)
+                    for obs_idx in planet_store.index]
+    stacked = pd.DataFrame(observations, index=planet_store.index)
+    stacked.to_pickle('preprocessing/training/%s.pkl' % idx)
+
+# %%
+valid_file = ariel.VALIDATION_FILE
+planet_idx = valid_file.index.unique(0).values
+
+for i_planet, idx in enumerate(planet_idx):
+
+    print("progress: %.2f%%" % (i_planet*100 / len(planet_idx)), end='\r')
+    planet_store = valid_file.store[idx]
+    observations = [ariel.read_store(planet_store[obs_idx], ariel._STORE_KEYS)
+                    for obs_idx in planet_store.index]
+    stacked = pd.DataFrame(observations, index=planet_store.index)
+    stacked.to_pickle('preprocessing/validation/%s.pkl' % idx)
+
+
+# %%
+test_file = ariel.TEST_FILE
+planet_idx = test_file.index.unique(0).values
+
+for i_planet, idx in enumerate(planet_idx):
+
+    print("progress: %.2f%%" % (i_planet*100 / len(planet_idx)), end='\r')
+    planet_store = test_file.store[idx]
+    observations = [ariel.read_store(planet_store[obs_idx], ariel._STORE_KEYS[:2])
+                    for obs_idx in planet_store.index]
+    stacked = pd.DataFrame(observations, index=planet_store.index)
+    stacked.to_pickle('preprocessing/test/%s.pkl' % idx)
+
+# %%
