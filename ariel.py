@@ -63,7 +63,7 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
 
 
 class Generator(Sequence):
-    def __init__(self, files, input_names, output_names=[], batch_size=128):
+    def __init__(self, files, input_names, output_names=[], batch_size=16):
         self.files = files
         self._input_names = input_names
         self._output_names = output_names
@@ -76,10 +76,11 @@ class Generator(Sequence):
         batch_mask = np.arange(self.batch_size * idx,
                                min(self.batch_size * (idx + 1),
                                    self.files.shape[0]))
-        batch_stores = self.files['store'][batch_mask]
+        batch_files = self.files[batch_mask]
 
-        batch = read_batch_store(
-            batch_stores, self._input_names + self._output_names)
+        batch = read_batch_pickle(batch_files)
+
+        without_planet_duplicates = _remove_planet_duplicates(batch)
 
         batch_input = {k: v for k, v in batch.items()
                        if k in self._input_names}
@@ -103,15 +104,9 @@ def read_pickle(file):
     return {col: np.squeeze(np.stack(df[col])) for col in df.columns}
 
 
-def read_batch_store(stores, requested_keys):
-    values = pd.DataFrame((read_store(s, requested_keys)
-                           for s in stores))
-    return {col: np.squeeze(np.stack(values[col])) for col in values.columns}
-
-
-def read_store(storepath, requested_keys):
-    with pd.HDFStore(storepath) as store:
-        return {key: store[key] for key in requested_keys}
+def _remove_planet_duplicates(batch):
+    return {k: v[:, 0] if k in ['extra_feature', 'orbit', 'relative_radius'] else v for
+            k, v in batch.items()}
 
 
 def normalize_features(batch):
@@ -119,7 +114,7 @@ def normalize_features(batch):
 
 
 class TrainGenerator(Generator):
-    def __init__(self, files, model, batch_size=128):
+    def __init__(self, files, model, batch_size=16):
         Generator.__init__(self, files,
                            model.input_names,
                            output_names=model.output_names,
@@ -131,7 +126,7 @@ class TrainGenerator(Generator):
 
 
 class TestGenerator(Generator):
-    def __init__(self, files, model, batch_size=128):
+    def __init__(self, files, model, batch_size=16):
         Generator.__init__(self, files,
                            model.input_names,
                            output_names=[],
