@@ -93,6 +93,11 @@ class Generator(Sequence):
             return normalized_batch_input
 
 
+def read_pickle(file):
+    df = pd.read_pickle(file)
+    return {col: np.squeeze(np.stack(df[col])) for col in df.columns}
+
+
 def read_batch_store(stores, requested_keys):
     values = pd.DataFrame((read_store(s, requested_keys)
                            for s in stores))
