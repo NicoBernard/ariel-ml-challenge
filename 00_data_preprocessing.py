@@ -374,3 +374,26 @@ for i_planet, idx in enumerate(planet_idx):
     stacked.to_pickle('preprocessing/test/%s.pkl' % idx)
 
 # %%
+
+updated_training_file = ariel.TRAINING_FILE
+updated_training_file['pickle'] = 'preprocessing/training/' + \
+    updated_training_file.index.get_level_values(0).astype(str) + '.pkl'
+
+# %%
+updated_test_file = ariel.TEST_FILE
+updated_test_file['pickle'] = 'preprocessing/test/' + \
+    updated_test_file.index.get_level_values(0).astype(str) + '.pkl'
+
+# %%
+updated_val_file = ariel.VALIDATION_FILE
+updated_val_file['pickle'] = 'preprocessing/validation/' + \
+    updated_val_file.index.get_level_values(0).astype(str) + '.pkl'
+
+
+# %%
+with pd.HDFStore('preprocessing/preprocessing.h5') as preprocessing:
+    preprocessing['training_file'] = updated_training_file
+    preprocessing['validation_file'] = updated_val_file
+    preprocessing['test_file'] = updated_test_file
+
+# %%
