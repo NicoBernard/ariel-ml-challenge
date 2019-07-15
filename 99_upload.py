@@ -12,7 +12,7 @@ get_ipython().run_line_magic('autoreload', '2')
 # ## Make prediction on noisy_test files
 
 model = load_model(
-    'model_checkpoints/2019-07-08T10-38-42_multichannel-3layers.hdf5')
+    'model_checkpoints/2019-07-15T21-32-45_planet.hdf5')
 
 # %%
 test_gen = ariel.TestGenerator(ariel.TEST_FILE, model)
@@ -26,6 +26,6 @@ predictions = model.predict_generator(test_gen,
 
 # %%
 filename = 'upload/%s.txt' % ariel.timestamp(model.name)
-np.savetxt(filename, predictions, fmt='%.13f')
+np.savetxt(filename, predictions.reshape((62900, 55)), fmt='%.13f')
 
 # %%

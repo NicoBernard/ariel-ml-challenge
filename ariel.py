@@ -46,7 +46,7 @@ def read_batch(files):
     return np.squeeze(np.stack(feature)), np.stack(extra_feature)
 
 
-def create_train_val_generator(model, batch_size=128):
+def create_train_val_generator(model, batch_size=16):
 
     train_generator = TrainGenerator(
         TRAINING_FILE, model, batch_size=batch_size)
@@ -63,8 +63,8 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
 
 
 class Generator(Sequence):
-    def __init__(self, files, input_names, output_names=[], batch_size=128):
-        self.files = files
+    def __init__(self, files, input_names, output_names=[], batch_size=16):
+        self.files = files['pickle'].unique()
         self._input_names = input_names
         self._output_names = output_names
         self.batch_size = batch_size
@@ -76,10 +76,9 @@ class Generator(Sequence):
         batch_mask = np.arange(self.batch_size * idx,
                                min(self.batch_size * (idx + 1),
                                    self.files.shape[0]))
-        batch_stores = self.files['store'][batch_mask]
+        batch_files = self.files[batch_mask]
 
-        batch = read_batch_store(
-            batch_stores, self._input_names + self._output_names)
+        batch = read_batch_pickle(batch_files)
 
         batch_input = {k: v for k, v in batch.items()
                        if k in self._input_names}
@@ -93,15 +92,14 @@ class Generator(Sequence):
             return normalized_batch_input
 
 
-def read_batch_store(stores, requested_keys):
-    values = pd.DataFrame((read_store(s, requested_keys)
-                           for s in stores))
-    return {col: np.squeeze(np.stack(values[col])) for col in values.columns}
+def read_batch_pickle(files):
+    filewise = pd.DataFrame((read_pickle(f) for f in files))
+    return {col: np.squeeze(np.stack(filewise[col])) for col in filewise.columns}
 
 
-def read_store(storepath, requested_keys):
-    with pd.HDFStore(storepath) as store:
-        return {key: store[key] for key in requested_keys}
+def read_pickle(file):
+    df = pd.read_pickle(file)
+    return {col: np.squeeze(np.stack(df[col])) for col in df.columns}
 
 
 def normalize_features(batch):
@@ -109,7 +107,7 @@ def normalize_features(batch):
 
 
 class TrainGenerator(Generator):
-    def __init__(self, files, model, batch_size=128):
+    def __init__(self, files, model, batch_size=16):
         Generator.__init__(self, files,
                            model.input_names,
                            output_names=model.output_names,
@@ -117,11 +115,11 @@ class TrainGenerator(Generator):
         self.on_epoch_end()
 
     def on_epoch_end(self):
-        self.files = self.files.sample(frac=1)
+        self.files = np.random.permutation(self.files)
 
 
 class TestGenerator(Generator):
-    def __init__(self, files, model, batch_size=128):
+    def __init__(self, files, model, batch_size=16):
         Generator.__init__(self, files,
                            model.input_names,
                            output_names=[],
