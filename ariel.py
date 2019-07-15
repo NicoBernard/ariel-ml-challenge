@@ -46,7 +46,7 @@ def read_batch(files):
     return np.squeeze(np.stack(feature)), np.stack(extra_feature)
 
 
-def create_train_val_generator(model, batch_size=128):
+def create_train_val_generator(model, batch_size=16):
 
     train_generator = TrainGenerator(
         TRAINING_FILE, model, batch_size=batch_size)
@@ -64,7 +64,7 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
 
 class Generator(Sequence):
     def __init__(self, files, input_names, output_names=[], batch_size=16):
-        self.files = files
+        self.files = files['pickle'].unique()
         self._input_names = input_names
         self._output_names = output_names
         self.batch_size = batch_size
@@ -79,8 +79,6 @@ class Generator(Sequence):
         batch_files = self.files[batch_mask]
 
         batch = read_batch_pickle(batch_files)
-
-        without_planet_duplicates = _remove_planet_duplicates(batch)
 
         batch_input = {k: v for k, v in batch.items()
                        if k in self._input_names}
@@ -104,11 +102,6 @@ def read_pickle(file):
     return {col: np.squeeze(np.stack(df[col])) for col in df.columns}
 
 
-def _remove_planet_duplicates(batch):
-    return {k: v[:, 0] if k in ['extra_feature', 'orbit', 'relative_radius'] else v for
-            k, v in batch.items()}
-
-
 def normalize_features(batch):
     return {key: (batch[key] - MEAN[key])/STD[key] for key in batch.keys()}
 
@@ -122,7 +115,7 @@ class TrainGenerator(Generator):
         self.on_epoch_end()
 
     def on_epoch_end(self):
-        self.files = self.files.sample(frac=1)
+        self.files = np.random.permutation(self.files)
 
 
 class TestGenerator(Generator):
