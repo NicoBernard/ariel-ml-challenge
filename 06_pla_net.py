@@ -11,10 +11,21 @@ get_ipython().run_line_magic('autoreload', '2')
 # %%
 K.clear_session()
 
-observation_model = load_model(
-    'model_checkpoints/2019-07-08T18-08-47_3multichannel-2dense.hdf5')
+flux = Input(shape=(55, 300))
 
-# %%
+cell1 = ariel.create_multichannel_cell(flux, 32, [3, 5, 7], 4)
+cell2 = ariel.create_multichannel_cell(cell1, 64, [3, 5, 7], 4)
+cell3 = ariel.create_multichannel_cell(cell2, 128, [3, 5, 7], 4)
+
+flattened = layers.Flatten(name='flatten')(cell3)
+dense1 = layers.Dense(256, activation='relu')(flattened)
+dense2 = layers.Dense(128, activation='relu')(dense1)
+relative_radius = layers.Dense(
+    55, activation=None)(dense2)
+
+observation_model = Model(name='3multichannel-2dense',
+                          inputs=[flux],
+                          outputs=[relative_radius])
 
 feature = Input(shape=(100, 55, 300), name='feature')
 multi_pred = layers.TimeDistributed(observation_model)(feature)
@@ -37,16 +48,17 @@ model.compile('rmsprop',
               metrics=ariel.METRICS)
 
 # %%
-batch_size = 16
+batch_size = 8
 train_generator, val_generator = ariel \
     .create_train_val_generator(model,
                                 batch_size=batch_size)
 
-
 # %%
-model.evaluate_generator(val_generator, verbose=True)
+history = model.fit_generator(train_generator,
+                              epochs=5, callbacks=ariel.create_callbacks(model.name),
+                              validation_data=val_generator,
+                              use_multiprocessing=True, workers=4,
+                              )
 
-# %%
-model.save('model_checkpoints/%s.hdf5' % ariel.timestamp(model.name))
 
 # %%

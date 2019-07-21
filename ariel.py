@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras import callbacks
+from keras import callbacks, layers
 from keras.utils import Sequence
 import keras.backend as K
 import pandas as pd
@@ -129,7 +129,8 @@ class TestGenerator(Generator):
 def create_callbacks(model_name):
     timestamped = timestamp(model_name)
     return [
-        callbacks.ReduceLROnPlateau(monitor='loss', factor=0.3),
+        callbacks.ReduceLROnPlateau(
+            monitor='loss', factor=0.1, verbose=True, patience=2),
         callbacks.EarlyStopping(
             monitor='loss', patience=2,
             restore_best_weights=True, verbose=True),
