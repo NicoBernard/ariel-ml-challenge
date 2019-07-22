@@ -63,8 +63,10 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
 
 
 class Generator(Sequence):
+
     def __init__(self, files, input_names, output_names=[], batch_size=16):
         self.files = files['pickle'].unique()
+        self._data = self._read_all_files()
         self._input_names = input_names
         self._output_names = output_names
         self.batch_size = batch_size
@@ -78,7 +80,7 @@ class Generator(Sequence):
                                    self.files.shape[0]))
         batch_files = self.files[batch_mask]
 
-        batch = read_batch_pickle(batch_files)
+        batch = self._get_batch(batch_files)
 
         batch_input = {k: v for k, v in batch.items()
                        if k in self._input_names}
@@ -91,10 +93,19 @@ class Generator(Sequence):
         else:
             return normalized_batch_input
 
+    def _read_all_files(self):
+        data = {}
+        n_file = len(self.files)
+        for i_file, file in enumerate(self.files):
+            print('Reading files: %d/100%%' %
+                  (100*(i_file+1)//n_file), end='\r')
+            data[file] = read_pickle(file)
+        return data
 
-def read_batch_pickle(files):
-    filewise = pd.DataFrame((read_pickle(f) for f in files))
-    return {col: np.squeeze(np.stack(filewise[col])) for col in filewise.columns}
+    def _get_batch(self, batch_files):
+        filewise = pd.DataFrame((self._data[f]
+                                 for f in batch_files))
+        return {col: np.squeeze(np.stack(filewise[col])) for col in filewise.columns}
 
 
 def read_pickle(file):
@@ -107,7 +118,7 @@ def normalize_features(batch):
 
 
 class TrainGenerator(Generator):
-    def __init__(self, files, model, batch_size=16):
+    def __init__(self, files, model, batch_size=16, provider='ram'):
         Generator.__init__(self, files,
                            model.input_names,
                            output_names=model.output_names,
