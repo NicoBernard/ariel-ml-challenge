@@ -118,7 +118,7 @@ def normalize_features(batch):
 
 
 class TrainGenerator(Generator):
-    def __init__(self, files, model, batch_size=16, provider='ram'):
+    def __init__(self, files, model, batch_size=16):
         Generator.__init__(self, files,
                            model.input_names,
                            output_names=model.output_names,
@@ -127,6 +127,12 @@ class TrainGenerator(Generator):
 
     def on_epoch_end(self):
         self.files = np.random.permutation(self.files)
+
+    def _get_batch(self, batch_files):
+        planetwise_batch = super()._get_batch(batch_files)
+        observationwise_batch = {key: batch.reshape((-1, *batch.shape[2:]))
+                                 for key, batch in planetwise_batch.items()}
+        return observationwise_batch
 
 
 class TestGenerator(Generator):
