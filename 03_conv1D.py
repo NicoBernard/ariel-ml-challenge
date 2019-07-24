@@ -44,9 +44,8 @@ train_generator, val_generator = ariel \
 
 # %%
 history = model.fit_generator(train_generator,
-                              epochs=5, callbacks=ariel.create_callbacks(model.name),
+                              epochs=10, callbacks=ariel.create_callbacks(model.name),
                               validation_data=val_generator,
-                              use_multiprocessing=True, workers=4,
                               )
 
 
