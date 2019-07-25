@@ -46,11 +46,20 @@ def read_batch(files):
     return np.squeeze(np.stack(feature)), np.stack(extra_feature)
 
 
-def create_train_val_generator(model, batch_size=128):
+def create_observationwise_generators(model, batch_size=128):
 
-    train_generator = TrainGenerator(
+    train_generator = ObservationWiseGenerator(
         TRAINING_FILE, model, batch_size=batch_size)
-    val_generator = TrainGenerator(
+    val_generator = ObservationWiseGenerator(
+        VALIDATION_FILE, model, batch_size=batch_size)
+    return train_generator, val_generator
+
+
+def create_planetwise_generators(model, batch_size=8):
+
+    train_generator = PlanetWiseGenerator(
+        TRAINING_FILE, model, batch_size=batch_size)
+    val_generator = PlanetWiseGenerator(
         VALIDATION_FILE, model, batch_size=batch_size)
     return train_generator, val_generator
 
@@ -64,23 +73,25 @@ def split_files_into_train_val(training_file=TRAINING_FILE,
 
 class Generator(Sequence):
 
-    def __init__(self, observations, input_names, output_names=[], batch_size=128, groupby_planet=False):
-        self.observations = observations
+    def __init__(self, samples, input_names, output_names=[], batch_size=128, shuffled=True):
+        self.samples = samples
         self._pickle_reader = CachedPickleReader()
         self._input_names = input_names
         self._output_names = output_names
         self.batch_size = batch_size
+        self.shuffled = shuffled
+
+        self.on_epoch_end()
 
     def __len__(self):
-        return int(np.ceil(self.observations.shape[0]/float(self.batch_size)))
+        return int(np.ceil(self.samples.shape[0]/float(self.batch_size)))
 
     def __getitem__(self, idx):
         batch_mask = np.arange(self.batch_size * idx,
                                min(self.batch_size * (idx + 1),
-                                   self.observations.shape[0]))
-        observation_batch = self.observations.iloc[batch_mask]
+                                   self.samples.shape[0]))
 
-        batch = self._get_batch(observation_batch)
+        batch = self._get_batch(batch_mask)
 
         batch_input = {k: v for k, v in batch.items()
                        if k in self._input_names}
@@ -93,12 +104,12 @@ class Generator(Sequence):
         else:
             return normalized_batch_input
 
-    def _get_batch(self, observation_batch):
-        filewise = pd.concat((self._pickle_reader.read(f)
-                              for f in observation_batch['pickle'].unique()),
-                             keys=observation_batch.index.get_level_values(0).unique())
-        filtered = filewise.loc[observation_batch.index]
-        return {col: np.squeeze(np.stack(filtered[col])) for col in filtered.columns}
+    def _get_batch(self, batch_mask):
+        raise NotImplementedError
+
+    def on_epoch_end(self):
+        if self.shuffled:
+            self.samples = self.samples.sample(frac=1)
 
 
 class CachedPickleReader(object):
@@ -122,24 +133,36 @@ def normalize_features(batch):
     return {key: (batch[key] - MEAN[key])/STD[key] for key in batch.keys()}
 
 
-class TrainGenerator(Generator):
-    def __init__(self, observations, model, batch_size=16):
-        Generator.__init__(self, observations,
-                           model.input_names,
-                           output_names=model.output_names,
-                           batch_size=batch_size)
-        self.on_epoch_end()
+class ObservationWiseGenerator(Generator):
 
-    def on_epoch_end(self):
-        self.observations = self.observations.sample(frac=1)
+    def __init__(self, observations, model, batch_size=128):
+        super().__init__(observations, model.input_names,
+                         output_names=model.output_names, batch_size=batch_size)
+
+    def _get_batch(self, batch_mask):
+        observation_batch = self.samples.iloc[batch_mask]
+        filewise = pd.concat((self._pickle_reader.read(f)
+                              for f in observation_batch['pickle'].unique()),
+                             keys=observation_batch.index.get_level_values(0).unique())
+        filtered = filewise.loc[observation_batch.index]
+        return {col: np.squeeze(np.stack(filtered[col])) for col in filtered.columns}
 
 
-class TestGenerator(Generator):
-    def __init__(self, files, model, batch_size=16):
-        Generator.__init__(self, files,
-                           model.input_names,
-                           output_names=[],
-                           batch_size=batch_size)
+class PlanetWiseGenerator(Generator):
+
+    def __init__(self, observations, model, batch_size=8):
+        super().__init__(observations[::100], model.input_names,
+                         output_names=model.output_names, batch_size=batch_size)
+
+    def _get_batch(self, batch_mask):
+        planet_batch = self.samples.iloc[batch_mask]
+        planet_list = [self._pickle_reader.read(f)
+                       for f in planet_batch['pickle']]
+        as_dicts = [{col: np.squeeze(np.stack(planet[col]))
+                     for col in planet.columns} for planet in planet_list]
+        planet_df = pd.DataFrame(as_dicts)
+
+        return {col: np.squeeze(np.stack(planet_df[col])) for col in planet_df.columns}
 
 
 def create_callbacks(model_name):
