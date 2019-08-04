@@ -64,6 +64,11 @@ def create_planetwise_generators(model, batch_size=8):
     return train_generator, val_generator
 
 
+def create_test_generator(model, batch_size=8):
+    return PlanetWiseGenerator(
+        TEST_FILE, model, batch_size=batch_size)
+
+
 def split_files_into_train_val(training_file=TRAINING_FILE,
                                validation_ratio=0.2):
     planet_train, planet_val = train_test_split(

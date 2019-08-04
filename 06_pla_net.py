@@ -12,10 +12,18 @@ get_ipython().run_line_magic('autoreload', '2')
 K.clear_session()
 
 observation_model = load_model(
-    'model_checkpoints/2019-07-24T07-34-22_3multichannel-2dense.hdf5')
+    'model_checkpoints/2019-07-25T07-37-28_3multichannel-2dense.hdf5')
 
 feature = Input(shape=(100, 55, 300), name='feature')
-multi_pred = layers.TimeDistributed(observation_model)(feature)
+reshaped_feature = layers.Reshape((100, 55*300))(feature)
+extra_feature = Input(shape=(100, 6,), name='extra_feature')
+
+merged = layers.Concatenate(axis=2)([reshaped_feature, extra_feature])
+
+obs_model_from_slice = layers.Lambda(
+    lambda x: observation_model([K.reshape(x[:, :-6], (-1, 55, 300)), x[:, -6:]]))
+
+multi_pred = layers.TimeDistributed(obs_model_from_slice)(merged)
 mean_pred = layers.Lambda(lambda x: K.mean(
     x, axis=1, keepdims=True))(multi_pred)
 relative_radius = layers.Lambda(lambda x: K.repeat_elements(
@@ -23,7 +31,7 @@ relative_radius = layers.Lambda(lambda x: K.repeat_elements(
 
 model_name = 'planet'
 model = Model(name=model_name,
-              inputs=[feature],
+              inputs=[feature, extra_feature],
               outputs=[relative_radius])
 
 # %%
@@ -42,6 +50,16 @@ _, val_generator = ariel \
 
 # %%
 model.evaluate_generator(val_generator, verbose=True)
+
+# %%
+test_gen = ariel.create_test_generator(model)
+predictions = model.predict_generator(test_gen,
+                                      verbose=True)
+
+
+# %%
+filename = 'upload/%s.txt' % ariel.timestamp(model.name)
+np.savetxt(filename, predictions.reshape((62900, 55)), fmt='%.13f')
 
 
 # %%
