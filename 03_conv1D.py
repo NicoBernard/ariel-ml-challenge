@@ -11,9 +11,14 @@ get_ipython().run_line_magic('autoreload', '2')
 # %%
 K.clear_session()
 
-flux = Input(shape=(55, 300), name='feature')
+feature = Input(shape=(55, 300), name='feature')
+extra_feature = Input(shape=(6,), name='extra_feature')
+repeated_extra_feature = layers.Lambda(lambda x: K.repeat_elements(
+    K.expand_dims(x, -1), 300, -1), name='repeated_extra_feature')(extra_feature)
 
-cell1 = ariel.create_multichannel_cell(flux, 32, [3, 5, 7], 4)
+merged = layers.Concatenate(axis=1)([feature, repeated_extra_feature])
+
+cell1 = ariel.create_multichannel_cell(merged, 32, [3, 5, 7], 4)
 cell2 = ariel.create_multichannel_cell(cell1, 64, [3, 5, 7], 4)
 cell3 = ariel.create_multichannel_cell(cell2, 128, [3, 5, 7], 4)
 
@@ -25,7 +30,7 @@ relative_radius = layers.Dense(
 
 model_name = '3multichannel-2dense'
 model = Model(name=model_name,
-              inputs=[flux],
+              inputs=[feature, extra_feature],
               outputs=[relative_radius])
 
 # %%
@@ -44,7 +49,7 @@ train_generator, val_generator = ariel \
 
 # %%
 history = model.fit_generator(train_generator,
-                              epochs=10, callbacks=ariel.create_callbacks(model.name),
+                              epochs=20, callbacks=ariel.create_callbacks(model.name),
                               validation_data=val_generator,
                               )
 

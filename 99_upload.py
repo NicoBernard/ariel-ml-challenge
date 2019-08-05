@@ -11,8 +11,11 @@ get_ipython().run_line_magic('autoreload', '2')
 # %% [markdown]
 # ## Make prediction on noisy_test files
 
+observation_model = load_model(
+    'model_checkpoints/2019-07-25T07-37-28_3multichannel-2dense.hdf5')
+
 model = load_model(
-    'model_checkpoints/2019-07-15T21-32-45_planet.hdf5')
+    'model_checkpoints/2019-08-04T22-23-34_extra_feat.hdf5')
 
 # %%
 test_gen = ariel.TestGenerator(ariel.TEST_FILE, model)
