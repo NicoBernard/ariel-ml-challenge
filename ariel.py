@@ -66,7 +66,7 @@ def create_planetwise_generators(model, batch_size=8):
 
 def create_test_generator(model, batch_size=8):
     return PlanetWiseGenerator(
-        TEST_FILE, model, batch_size=batch_size)
+        TEST_FILE, model, batch_size=batch_size, shuffled=False)
 
 
 def split_files_into_train_val(training_file=TRAINING_FILE,
@@ -140,9 +140,9 @@ def normalize_features(batch):
 
 class ObservationWiseGenerator(Generator):
 
-    def __init__(self, observations, model, batch_size=128):
+    def __init__(self, observations, model, batch_size=128, **kwargs):
         super().__init__(observations, model.input_names,
-                         output_names=model.output_names, batch_size=batch_size)
+                         output_names=model.output_names, batch_size=batch_size, **kwargs)
 
     def _get_batch(self, batch_mask):
         observation_batch = self.samples.iloc[batch_mask]
@@ -155,9 +155,9 @@ class ObservationWiseGenerator(Generator):
 
 class PlanetWiseGenerator(Generator):
 
-    def __init__(self, observations, model, batch_size=8):
+    def __init__(self, observations, model, batch_size=8, **kwargs):
         super().__init__(observations[::100], model.input_names,
-                         output_names=model.output_names, batch_size=batch_size)
+                         output_names=model.output_names, batch_size=batch_size, **kwargs)
 
     def _get_batch(self, batch_mask):
         planet_batch = self.samples.iloc[batch_mask]

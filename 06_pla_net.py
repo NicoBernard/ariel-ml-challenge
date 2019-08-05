@@ -29,7 +29,7 @@ mean_pred = layers.Lambda(lambda x: K.mean(
 relative_radius = layers.Lambda(lambda x: K.repeat_elements(
     x, 100, 1), name='relative_radius')(mean_pred)
 
-model_name = 'planet'
+model_name = 'extra_feat'
 model = Model(name=model_name,
               inputs=[feature, extra_feature],
               outputs=[relative_radius])
