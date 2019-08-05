@@ -26,9 +26,9 @@ flattened = layers.Flatten(name='flatten')(cell3)
 dense1 = layers.Dense(256, activation='relu')(flattened)
 dense2 = layers.Dense(128, activation='relu')(dense1)
 relative_radius = layers.Dense(
-    55, activation=None, name='relative_radius')(dense2)
+    55, activation='sigmoid', name='relative_radius')(dense2)
 
-model_name = '3multichannel-2dense'
+model_name = 'sigmoid-activation'
 model = Model(name=model_name,
               inputs=[feature, extra_feature],
               outputs=[relative_radius])
@@ -51,6 +51,7 @@ train_generator, val_generator = ariel \
 history = model.fit_generator(train_generator,
                               epochs=20, callbacks=ariel.create_callbacks(model.name),
                               validation_data=val_generator,
+                              verbose=True,
                               )
 
 
