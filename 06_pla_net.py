@@ -12,7 +12,7 @@ get_ipython().run_line_magic('autoreload', '2')
 K.clear_session()
 
 observation_model = load_model(
-    'model_checkpoints/2019-07-25T07-37-28_3multichannel-2dense.hdf5')
+    'model_checkpoints/2019-08-06T07-45-37_3multichannel-2dense.hdf5')
 
 feature = Input(shape=(100, 55, 300), name='feature')
 reshaped_feature = layers.Reshape((100, 55*300))(feature)
@@ -29,7 +29,7 @@ mean_pred = layers.Lambda(lambda x: K.mean(
 relative_radius = layers.Lambda(lambda x: K.repeat_elements(
     x, 100, 1), name='relative_radius')(mean_pred)
 
-model_name = 'extra_feat'
+model_name = 'final'
 model = Model(name=model_name,
               inputs=[feature, extra_feature],
               outputs=[relative_radius])
