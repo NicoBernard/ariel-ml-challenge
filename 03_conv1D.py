@@ -18,7 +18,9 @@ repeated_extra_feature = layers.Lambda(lambda x: K.repeat_elements(
 
 merged = layers.Concatenate(axis=1)([feature, repeated_extra_feature])
 
-cell1 = ariel.create_multichannel_cell(merged, 32, [3, 5, 7], 4)
+dropout = layers.SpatialDropout1D(0.1)(merged)
+
+cell1 = ariel.create_multichannel_cell(dropout, 32, [3, 5, 7], 4)
 cell2 = ariel.create_multichannel_cell(cell1, 64, [3, 5, 7], 4)
 cell3 = ariel.create_multichannel_cell(cell2, 128, [3, 5, 7], 4)
 
