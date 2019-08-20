@@ -1,3 +1,7 @@
+# %% [markdown]
+# # Observation-wise training
+# A CNN network is trained.
+
 # %%
 import ariel
 import numpy as np

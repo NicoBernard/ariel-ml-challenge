@@ -1,4 +1,3 @@
-
 # %% [markdown]
 # # Preprocessings
 # This notebook contains all the small preprocessing used for training.
