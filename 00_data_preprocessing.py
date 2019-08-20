@@ -1,4 +1,8 @@
 
+# %% [markdown]
+# # Preprocessings
+# This notebook contains all the small preprocessing used for training.
+
 # %%
 import ariel
 import tarfile
@@ -18,11 +22,10 @@ get_ipython().run_line_magic('autoreload', '2')
 # ## Converting data in a more manageable format
 
 # %%
-#import tarfile
 
-#tar = tarfile.open("database.tar")
-# tar.extractall(path="data/")
-# tar.close()
+tar = tarfile.open("database.tar")
+tar.extractall(path="data/")
+tar.close()
 
 
 # %%
