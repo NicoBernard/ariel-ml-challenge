@@ -1,5 +1,4 @@
-preprocessing/test
-preprocessing/validation
-preprocessing/training
+preprocessing
+upload
 __pycache__
 .vscode
