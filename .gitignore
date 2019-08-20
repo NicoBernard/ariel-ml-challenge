@@ -2,3 +2,9 @@ preprocessing/test
 preprocessing/validation
 preprocessing/training
 __pycache__
+.vscode
+data
+history
+logs
+model_checkpoints/2019-07*
+upload
