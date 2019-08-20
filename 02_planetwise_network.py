@@ -1,3 +1,7 @@
+# %% [markdown]
+# # Planet-wise network assembly
+# The previously trained network is assembled for using all observation of a given planet.
+
 # %%
 import ariel
 import numpy as np
